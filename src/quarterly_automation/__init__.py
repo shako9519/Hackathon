@@ -1,0 +1,1 @@
+"""Quarterly investment statistics automation core."""

@@ -1,0 +1,10 @@
+{
+  "excluded_gl_accounts": [],
+  "domestic_country_code": "HU",
+  "domestic_project_types": ["ME", "WE", "WW"],
+  "startup_project_types": [],
+  "intangible_asset_classes": ["S1"],
+  "building_asset_classes": [],
+  "building_cost_centers": ["658173"],
+  "machine_project_types": ["TB"]
+}

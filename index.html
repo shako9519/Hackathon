@@ -287,7 +287,10 @@
     .image-stage .media-edit { right: 8px; bottom: 8px; padding: 7px 9px; }
     .impact { padding-top: clamp(68px, 8vw, 105px); padding-bottom: clamp(68px, 8vw, 105px); }
     .conclusion { padding-top: clamp(62px, 8vw, 105px); padding-bottom: clamp(62px, 8vw, 105px); }
-    .conclusion h2 { font-size: clamp(58px, 9vw, 118px); }
+    .conclusion-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .88fr); align-items: center; gap: clamp(32px, 6vw, 84px); }
+    .conclusion h2 { font-size: clamp(58px, 7.4vw, 104px); }
+    .conclusion-media { width: 100%; aspect-ratio: 16 / 10; display: block; object-fit: cover; background: #080808; border: 1px solid rgba(255,255,255,.24); }
+    .conclusion-rule { margin-top: 38px; }
     .site-footer { min-height: 84px; padding: 20px var(--gutter); display: flex; align-items: center; justify-content: space-between; gap: 20px; background: #fff; border-top: 1px solid var(--line); }
     .site-footer a:last-child { color: var(--muted); font-size: 12px; font-weight: 700; }
     @media (max-width: 900px) {
@@ -311,6 +314,8 @@
       .slide { padding-top: 62px; padding-bottom: 62px; }
       .hero { min-height: auto; padding-top: 58px; padding-bottom: 62px; }
       .hero .slide-inner { grid-template-columns: 1fr; gap: 34px; }
+      .conclusion-layout { grid-template-columns: 1fr; gap: 28px; }
+      .conclusion-media { max-width: 720px; }
       .hero h1 { font-size: clamp(50px, 13vw, 70px); }
       .hero-visual { max-width: 520px; width: calc(100% - 12px); margin: 0 12px 12px 0; }
       .hero::after { width: 60vw; right: 0; top: 23%; }
@@ -512,9 +517,14 @@
 
     <section class="slide conclusion" id="conclusion" aria-label="Conclusion">
       <div class="slide-inner">
-        <div class="eyebrow reveal">Quarterly reporting, reimagined</div>
-        <h2 class="reveal delay-1">RAW DATA<br>IN. <span>READY</span><br>OUT.</h2>
-        <p class="lead reveal delay-2">One Configurable Pipeline</p>
+        <div class="conclusion-layout">
+          <div class="conclusion-copy">
+            <div class="eyebrow reveal">Quarterly reporting, reimagined</div>
+            <h2 class="reveal delay-1">RAW DATA<br>IN. <span>READY</span><br>OUT.</h2>
+            <p class="lead reveal delay-2">One Configurable Pipeline</p>
+          </div>
+          <video class="conclusion-media reveal delay-2" src="qisa-demo.mp4" autoplay muted loop playsinline controls preload="metadata" aria-label="Looping QISA reporting demonstration"></video>
+        </div>
         <div class="conclusion-rule reveal delay-3"></div>
         <div class="conclusion-foot reveal delay-4"><span>QISA</span><span>End-to-end quarterly automation</span></div>
       </div>

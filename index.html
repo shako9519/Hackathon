@@ -230,6 +230,12 @@
     .hero .lead { max-width: 510px; }
     .hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 24px; margin-top: 33px; }
     .text-link { color: var(--ink); font-size: 12px; font-weight: 700; border-bottom: 1px solid #aeb5b1; padding: 0 0 4px; }
+    .share-qr { width: fit-content; margin-top: 28px; display: flex; align-items: center; gap: 14px; padding: 10px 15px 10px 10px; background: white; border: 1px solid var(--line); }
+    .share-qr svg { width: 140px; height: 140px; flex: 0 0 140px; background: #fff; shape-rendering: crispEdges; }
+    .share-qr-copy { display: grid; gap: 5px; }
+    .share-qr-copy strong { font: 700 14px var(--display); }
+    .share-qr-copy span { color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .share-qr-copy code { margin-top: 3px; color: var(--red-dark); font: 10px var(--body); overflow-wrap: anywhere; }
     .hero-visual { position: relative; z-index: 1; width: 100%; background: #f8f8f2; border: 1px solid #dfe2f3; box-shadow: 12px 12px 0 rgba(38,58,130,.1); }
     .hero-visual svg { display: block; width: 100%; height: auto; }
     .summary { padding-top: clamp(62px, 7vw, 94px); padding-bottom: clamp(62px, 7vw, 94px); }
@@ -309,6 +315,8 @@
       .hero-visual { max-width: 520px; width: calc(100% - 12px); margin: 0 12px 12px 0; }
       .hero::after { width: 60vw; right: 0; top: 23%; }
       .hero-actions { gap: 16px; }
+      .share-qr { margin-top: 23px; }
+      .share-qr svg { width: 112px; height: 112px; flex-basis: 112px; }
       .summary-grid { margin-top: 30px; }
       .problem-head, .diff-heading { gap: 14px; }
       .process { grid-template-columns: repeat(2, 1fr); }
@@ -357,6 +365,10 @@
           <h1 class="reveal delay-2">Quarterly reporting.<br><span>One flow.</span></h1>
           <p class="lead reveal delay-3">Turning quarterly investment reporting into one automated flow.</p>
           <div class="hero-actions reveal delay-4"><a class="primary-link" href="#solution">Explore the workflow <span aria-hidden="true">↓</span></a><a class="text-link" href="#impact">See the business impact</a></div>
+          <a class="share-qr" href="https://shako9519.github.io/Hackathon/index.html" target="_blank" rel="noopener noreferrer" aria-label="Open QISA website on mobile">
+            <svg id="shareQr" viewBox="0 0 37 37" role="img" aria-label="QR code for https://shako9519.github.io/Hackathon/index.html" shape-rendering="crispEdges"><rect width="37" height="37" fill="#fff"/><path id="shareQrModules" fill="#111"/></svg>
+            <span class="share-qr-copy"><strong>Open on mobile</strong><span>Scan this code with your phone camera.</span><code>shako9519.github.io/Hackathon</code></span>
+          </a>
         </div>
         <aside class="hero-visual reveal delay-2" aria-label="QISA connects investment, automation, quarterly reporting, and statistics">
           <svg viewBox="0 0 720 500" role="img" aria-labelledby="qisa-diagram-title qisa-diagram-description">
@@ -511,9 +523,118 @@
   <footer class="site-footer"><a class="brand" href="#home"><span class="brand-mark"></span> QISA / Quarterly reporting</a><a href="#home">Back to top ↑</a></footer>
   <script>
     (() => {
+      const mobileUrl = 'https://shako9519.github.io/Hackathon/index.html';
+      const qrSize = 29;
+      const qrDataCodewords = 55;
+      const qrErrorCodewords = 15;
       const databaseName = 'qisa-media-library';
       const storeName = 'assets';
       const activeUrls = new Map();
+
+      function multiplyInField(left, right) {
+        let product = 0;
+        for (let bit = 7; bit >= 0; bit--) {
+          product = (product << 1) ^ ((product >>> 7) * 0x11d);
+          product ^= ((right >>> bit) & 1) * left;
+        }
+        return product;
+      }
+
+      function makeQrCodewords(text) {
+        const bytes = [...new TextEncoder().encode(text)];
+        if (bytes.length > 53) throw new Error('QR destination is too long for the built-in encoder.');
+        const bits = [];
+        const appendBits = (value, length) => {
+          for (let shift = length - 1; shift >= 0; shift--) bits.push((value >>> shift) & 1);
+        };
+        appendBits(4, 4);
+        appendBits(bytes.length, 8);
+        bytes.forEach(byte => appendBits(byte, 8));
+        for (let i = 0; i < Math.min(4, qrDataCodewords * 8 - bits.length); i++) bits.push(0);
+        while (bits.length % 8) bits.push(0);
+        const data = [];
+        for (let i = 0; i < bits.length; i += 8) data.push(bits.slice(i, i + 8).reduce((value, bit) => (value << 1) | bit, 0));
+        for (let pad = 0; data.length < qrDataCodewords; pad++) data.push(pad % 2 ? 0x11 : 0xec);
+
+        let generator = [1];
+        let root = 1;
+        for (let i = 0; i < qrErrorCodewords; i++) {
+          const next = Array(generator.length + 1).fill(0);
+          generator.forEach((coefficient, index) => {
+            next[index] ^= coefficient;
+            next[index + 1] ^= multiplyInField(coefficient, root);
+          });
+          generator = next;
+          root = multiplyInField(root, 2);
+        }
+        const remainder = Array(qrErrorCodewords).fill(0);
+        for (const byte of data) {
+          const factor = byte ^ remainder.shift();
+          remainder.push(0);
+          remainder.forEach((value, index) => { remainder[index] = value ^ multiplyInField(generator[index + 1], factor); });
+        }
+        return [...data, ...remainder];
+      }
+
+      function renderShareQr() {
+        const matrix = Array.from({ length: qrSize }, () => Array(qrSize).fill(false));
+        const reserved = Array.from({ length: qrSize }, () => Array(qrSize).fill(false));
+        const setFunction = (x, y, dark) => {
+          if (x >= 0 && y >= 0 && x < qrSize && y < qrSize) {
+            matrix[y][x] = dark;
+            reserved[y][x] = true;
+          }
+        };
+        const drawFinder = (centerX, centerY) => {
+          for (let dy = -1; dy <= 7; dy++) for (let dx = -1; dx <= 7; dx++) {
+            const distance = Math.max(Math.abs(dx - 3), Math.abs(dy - 3));
+            setFunction(centerX + dx, centerY + dy, distance !== 2 && distance !== 4);
+          }
+        };
+        drawFinder(0, 0);
+        drawFinder(qrSize - 7, 0);
+        drawFinder(0, qrSize - 7);
+        for (let i = 8; i < qrSize - 8; i++) {
+          setFunction(i, 6, i % 2 === 0);
+          setFunction(6, i, i % 2 === 0);
+        }
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+          setFunction(22 + dx, 22 + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+        }
+
+        const formatData = 0b01000;
+        let formatRemainder = formatData;
+        for (let i = 0; i < 10; i++) formatRemainder = (formatRemainder << 1) ^ ((formatRemainder >>> 9) * 0x537);
+        const formatBits = ((formatData << 10) | formatRemainder) ^ 0x5412;
+        for (let i = 0; i <= 5; i++) setFunction(8, i, ((formatBits >>> i) & 1) !== 0);
+        setFunction(8, 7, ((formatBits >>> 6) & 1) !== 0);
+        setFunction(8, 8, ((formatBits >>> 7) & 1) !== 0);
+        setFunction(7, 8, ((formatBits >>> 8) & 1) !== 0);
+        for (let i = 9; i < 15; i++) setFunction(14 - i, 8, ((formatBits >>> i) & 1) !== 0);
+        for (let i = 0; i < 8; i++) setFunction(qrSize - 1 - i, 8, ((formatBits >>> i) & 1) !== 0);
+        for (let i = 8; i < 15; i++) setFunction(8, qrSize - 15 + i, ((formatBits >>> i) & 1) !== 0);
+        setFunction(8, qrSize - 8, true);
+
+        const codewords = makeQrCodewords(mobileUrl);
+        let bitIndex = 0;
+        for (let right = qrSize - 1; right >= 1; right -= 2) {
+          if (right === 6) right--;
+          for (let vert = 0; vert < qrSize; vert++) {
+            const y = ((right + 1) & 2) === 0 ? qrSize - 1 - vert : vert;
+            for (let offset = 0; offset < 2; offset++) {
+              const x = right - offset;
+              if (reserved[y][x]) continue;
+              const dark = bitIndex < codewords.length * 8 && ((codewords[bitIndex >>> 3] >>> (7 - (bitIndex & 7))) & 1) !== 0;
+              matrix[y][x] = dark !== ((x + y) % 2 === 0);
+              bitIndex++;
+            }
+          }
+        }
+        const path = matrix.flatMap((row, y) => row.flatMap((dark, x) => dark ? [`M${x + 4} ${y + 4}h1v1h-1z`] : [])).join('');
+        document.getElementById('shareQrModules').setAttribute('d', path);
+      }
+
+      renderShareQr();
 
       function openDatabase() {
         if (!('indexedDB' in window)) return Promise.resolve(null);
